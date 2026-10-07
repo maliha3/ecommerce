@@ -25,3 +25,4 @@ media/
 # Vendored Neon CLI skill docs — useful locally, not part of the app
 .claude/
 skills-lock.json
+.neon
