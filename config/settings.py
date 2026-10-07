@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,13 +104,30 @@ if DATABASE_URL:
             ssl_require=True,
         )
     }
-else:
+elif DEBUG or env_bool("ALLOW_SQLITE_IN_PRODUCTION", False):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+else:
+    # Falling back to SQLite in production is never what anyone wants: the
+    # host's disk is wiped on every deploy, so the shop comes up green but
+    # empty and the cause is invisible from the outside. Refuse to boot and
+    # say why instead.
+    raise ImproperlyConfigured(
+        "DATABASE_URL is not set and DEBUG is False.\n"
+        "\n"
+        "This deployment has no database. Set DATABASE_URL to your Postgres\n"
+        "connection string (use the *pooled* host on Neon), then redeploy.\n"
+        "\n"
+        "On Render: your service -> Environment -> add DATABASE_URL -> and be\n"
+        "sure to use the button that rebuilds and deploys, not a plain save.\n"
+        "\n"
+        "To run on SQLite in production anyway, set\n"
+        "ALLOW_SQLITE_IN_PRODUCTION=true (data will not survive a deploy)."
+    )
 
 # --------------------------------------------------------------------------
 # Static files (WhiteNoise) and media (Cloudinary)
