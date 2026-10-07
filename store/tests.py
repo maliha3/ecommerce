@@ -301,3 +301,30 @@ class LandingPageTests(TestCase):
         self.assertNotContains(response, "Shop by category")
         self.assertNotIn("home_categories", response.context)
 
+
+class EmptyCatalogueTests(TestCase):
+    """A shop with no stock yet should read as "nothing added", not broken.
+
+    This is the state a fresh deploy lands in before DATABASE_URL points at
+    a seeded database, so it needs to render without empty headings.
+    """
+
+    def test_landing_page_renders_with_no_products(self):
+        response = self.client.get(reverse("store:catalog"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_no_empty_category_heading(self):
+        response = self.client.get(reverse("store:catalog"))
+        self.assertNotContains(response, "Shop by category")
+
+    def test_no_zero_counts_shown(self):
+        response = self.client.get(reverse("store:catalog"))
+        self.assertNotContains(response, "0 items in stock")
+        self.assertNotContains(response, "0 labels")
+        self.assertContains(response, "New stock is being added")
+
+    def test_sale_and_featured_rails_absent(self):
+        response = self.client.get(reverse("store:catalog"))
+        self.assertNotContains(response, "On sale now")
+        self.assertNotContains(response, "Featured picks")
+
