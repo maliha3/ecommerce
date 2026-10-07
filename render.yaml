@@ -2,7 +2,7 @@
 # Free web service: sleeps after 15 minutes idle, wakes on the next request.
 services:
   - type: web
-    name: threadco-shop
+    name: hello-malaysia
     runtime: python
     plan: free
     region: singapore          # closest to Bangladesh; match your Neon region
