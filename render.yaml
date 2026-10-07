@@ -29,3 +29,6 @@ services:
         sync: false
       - key: SHOP_PHONE
         sync: false
+      # Set to "true" for the first deploy only, to seed the catalogue.
+      - key: SEED_DATA
+        sync: false
