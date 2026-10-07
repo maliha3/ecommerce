@@ -18,3 +18,12 @@ python manage.py migrate
 if [ "${SEED_DATA:-}" = "true" ]; then
   python manage.py seed_data --images
 fi
+
+# The free plan has no shell, so the first admin login has to be made here.
+# Set DJANGO_SUPERUSER_USERNAME / _EMAIL / _PASSWORD in the dashboard. This is
+# left in place: once the account exists createsuperuser fails on the unique
+# username, which the `|| true` swallows, so later deploys are a no-op. It
+# never resets an existing password.
+if [ -n "${DJANGO_SUPERUSER_USERNAME:-}" ] && [ -n "${DJANGO_SUPERUSER_PASSWORD:-}" ]; then
+  python manage.py createsuperuser --noinput || true
+fi
