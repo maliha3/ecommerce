@@ -1,0 +1,31 @@
+# Render blueprint. Commit this, then "New +" -> "Blueprint" in Render.
+# Free web service: sleeps after 15 minutes idle, wakes on the next request.
+services:
+  - type: web
+    name: threadco-shop
+    runtime: python
+    plan: free
+    region: singapore          # closest to Bangladesh; match your Neon region
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application --workers 2 --threads 4 --timeout 60"
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: SECRET_KEY
+        generateValue: true     # Render generates and stores it
+      - key: DEBUG
+        value: "False"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # Paste these in the dashboard — marked sync:false so they are not in git.
+      - key: DATABASE_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: BKASH_NUMBER
+        sync: false
+      - key: NAGAD_NUMBER
+        sync: false
+      - key: SHOP_PHONE
+        sync: false

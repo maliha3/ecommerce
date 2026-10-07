@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout &middot; {{ shop_name }}{% endblock %}
+
+{% block content %}
+  <h1 class="mt-7 text-2xl font-bold tracking-tight">Checkout</h1>
+
+  <form method="post" novalidate class="mt-6 grid gap-6 lg:grid-cols-[1fr_340px] lg:items-start">
+    {% csrf_token %}
+
+    <div class="space-y-6">
+      {% if form.non_field_errors %}
+        <div class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <!-- Delivery details -->
+      <section class="rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 class="text-base font-semibold">Delivery details</h2>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+          {% for field in form %}
+            {% if field.name in "full_name,phone,email,city,area" %}
+              <div {% if field.name == 'area' %}class="sm:col-span-2"{% endif %}>
+                <label for="{{ field.id_for_label }}" class="block text-xs font-semibold text-ink-soft">
+                  {{ field.label }}{% if field.field.required %} <span class="text-red-600">*</span>{% endif %}
+                </label>
+                <div class="mt-1.5">{{ field }}</div>
+                {% if field.help_text %}<p class="mt-1 text-xs text-ink-soft">{{ field.help_text }}</p>{% endif %}
+                {% for e in field.errors %}<p class="mt-1 text-xs font-medium text-red-700">{{ e }}</p>{% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+
+          {% for field in form %}
+            {% if field.name in "address,note" %}
+              <div class="sm:col-span-2">
+                <label for="{{ field.id_for_label }}" class="block text-xs font-semibold text-ink-soft">
+                  {{ field.label }}{% if field.field.required %} <span class="text-red-600">*</span>{% endif %}
+                </label>
+                <div class="mt-1.5">{{ field }}</div>
+                {% for e in field.errors %}<p class="mt-1 text-xs font-medium text-red-700">{{ e }}</p>{% endfor %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Payment: COD or a manual wallet transfer. No gateway. -->
+      <section class="rounded-xl border border-neutral-200 bg-white p-5">
+        <h2 class="text-base font-semibold">Payment</h2>
+        <p class="mt-1 text-xs text-ink-soft">Pick one. We do not take card payments online.</p>
+
+        {% for e in form.payment_method.errors %}
+          <p class="mt-2 text-xs font-medium text-red-700">{{ e }}</p>
+        {% endfor %}
+
+        <div class="mt-4 space-y-3">
+          {% for radio in form.payment_method %}
+            <label class="flex cursor-pointer gap-3 rounded-lg border border-neutral-300 p-4 transition has-[:checked]:border-ink has-[:checked]:bg-neutral-50">
+              <span class="pt-0.5">{{ radio.tag }}</span>
+              <span class="flex-1">
+                <span class="block text-sm font-semibold">{{ radio.choice_label }}</span>
+                <span class="mt-0.5 block text-xs text-ink-soft">
+                  {% if radio.data.value == 'cod' %}
+                    Pay the courier in cash when your parcel arrives.
+                  {% elif radio.data.value == 'bkash' %}
+                    Send money to <b class="font-semibold text-ink">{{ bkash_number }}</b> (Send Money),
+                    then enter the TrxID below.
+                  {% else %}
+                    Send money to <b class="font-semibold text-ink">{{ nagad_number }}</b> (Send Money),
+                    then enter the TrxID below.
+                  {% endif %}
+                </span>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+
+        <!-- Shown only for bKash/Nagad; JS toggles it, the server enforces it. -->
+        <div id="transfer-fields"
+             class="mt-4 hidden rounded-lg border border-amber-300 bg-amber-50 p-4">
+          <p class="text-sm font-semibold text-amber-950">Confirm your transfer</p>
+          <ol class="mt-2 list-decimal space-y-1 pl-5 text-xs text-amber-900">
+            <li>Open bKash or Nagad and choose <b>Send Money</b>.</li>
+            <li>Send the order total to <b id="merchant-number">{{ bkash_number }}</b>.</li>
+            <li>Copy the TrxID from the confirmation SMS and paste it below.</li>
+          </ol>
+
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            {% for field in form %}
+              {% if field.name in "sender_number,transaction_id" %}
+                <div>
+                  <label for="{{ field.id_for_label }}" class="block text-xs font-semibold text-amber-950">{{ field.label }}</label>
+                  <div class="mt-1.5">{{ field }}</div>
+                  {% for e in field.errors %}<p class="mt-1 text-xs font-medium text-red-700">{{ e }}</p>{% endfor %}
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+          <p class="mt-3 text-xs text-amber-900">
+            We check every TrxID against our wallet statement before dispatch.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Order summary -->
+    <aside class="rounded-xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-32">
+      <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-soft">Your order</h2>
+      <ul class="mt-4 space-y-3 text-sm">
+        {% for item in cart %}
+          <li class="flex justify-between gap-3">
+            <span>
+              {{ item.quantity }} &times; {{ item.product.name }}
+              <span class="block text-xs text-ink-soft">{{ item.variant.get_size_display }}</span>
+            </span>
+            <span class="font-medium">{{ currency }}{{ item.total_price|floatformat:"0g" }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <dl class="mt-4 space-y-2 border-t border-neutral-200 pt-4 text-sm">
+        <div class="flex justify-between">
+          <dt>Subtotal</dt>
+          <dd class="font-medium" data-subtotal="{{ cart.subtotal|floatformat:0 }}">{{ currency }}{{ cart.subtotal|floatformat:"0g" }}</dd>
+        </div>
+        <div class="flex justify-between">
+          <dt>Delivery</dt>
+          <dd id="delivery-cell" class="font-medium">{{ currency }}{{ charge_dhaka }}</dd>
+        </div>
+      </dl>
+      <p class="mt-4 flex justify-between border-t border-neutral-200 pt-4 text-base font-semibold">
+        <span>Total</span><span id="total-cell">{{ currency }}{{ cart.subtotal|floatformat:"0g" }}</span>
+      </p>
+
+      <button type="submit" class="mt-5 w-full rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-800">
+        Place order
+      </button>
+      <a href="{% url 'cart:detail' %}" class="mt-2.5 block text-center text-xs text-ink-soft hover:underline">Edit cart</a>
+    </aside>
+  </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const radios = document.querySelectorAll('input[name="payment_method"]');
+    const panel = document.getElementById('transfer-fields');
+    const merchant = document.getElementById('merchant-number');
+    const numbers = { bkash: '{{ bkash_number }}', nagad: '{{ nagad_number }}' };
+
+    function syncPayment() {
+      const picked = document.querySelector('input[name="payment_method"]:checked');
+      const manual = picked && picked.value !== 'cod';
+      panel.classList.toggle('hidden', !manual);
+      if (manual) merchant.textContent = numbers[picked.value] || '';
+    }
+    radios.forEach((r) => r.addEventListener('change', syncPayment));
+
+    // Live delivery charge and total as the area changes.
+    const areaSelect = document.getElementById('{{ form.area.id_for_label }}');
+    const subtotal = parseInt(document.querySelector('[data-subtotal]').dataset.subtotal, 10) || 0;
+    const fees = { dhaka: {{ charge_dhaka }}, outside: {{ charge_outside }} };
+    const currency = '{{ currency }}';
+
+    function syncTotals() {
+      const fee = fees[areaSelect ? areaSelect.value : 'dhaka'] ?? fees.dhaka;
+      document.getElementById('delivery-cell').textContent = currency + fee;
+      document.getElementById('total-cell').textContent = currency + (subtotal + fee);
+    }
+    if (areaSelect) areaSelect.addEventListener('change', syncTotals);
+
+    syncPayment();
+    syncTotals();
+  })();
+</script>
+{% endblock %}

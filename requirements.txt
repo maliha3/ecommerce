@@ -1,0 +1,18 @@
+# --- core ---------------------------------------------------------------
+Django==4.2.30                  # LTS; security fixes until Apr 2026
+gunicorn==23.0.0                # WSGI server Render runs in production
+
+# --- database (Neon Postgres) ------------------------------------------
+psycopg2-binary==2.9.9          # Postgres driver, no compiler needed
+dj-database-url==3.0.1          # parses Neon's DATABASE_URL
+
+# --- static files -------------------------------------------------------
+whitenoise[brotli]==6.7.0       # serves hashed static files from the app
+
+# --- media uploads (Cloudinary free tier) ------------------------------
+cloudinary==1.46.3
+django-cloudinary-storage==0.3.0
+
+# --- images and config --------------------------------------------------
+Pillow==10.4.0                  # required by Django's ImageField
+python-dotenv==1.0.1            # loads .env in local development

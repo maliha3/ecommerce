@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Page not found &middot; {{ shop_name }}{% endblock %}
+{% block content %}
+  <section class="mx-auto mt-20 max-w-md text-center">
+    <p class="text-5xl font-bold tracking-tight">404</p>
+    <h1 class="mt-3 text-xl font-semibold">We could not find that page.</h1>
+    <p class="mt-2 text-sm text-ink-soft">It may have sold out and been taken down.</p>
+    <a href="{% url 'store:catalog' %}" class="mt-6 inline-block rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white hover:bg-neutral-800">Back to the shop</a>
+  </section>
+{% endblock %}

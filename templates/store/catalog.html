@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% if brand %}{{ brand.name }} &middot; {{ shop_name }}
+  {% elif is_gold_page %}Gold &middot; {{ shop_name }}
+  {% elif category %}{{ category.name }} &middot; {{ shop_name }}
+  {% elif query %}&ldquo;{{ query }}&rdquo; &middot; {{ shop_name }}
+  {% else %}{{ shop_name }} &mdash; {{ shop_tagline }}{% endif %}
+{% endblock %}
+
+{% block content %}
+  {% if is_home %}
+    <section class="mt-6 rounded-2xl border border-neutral-200 bg-gradient-to-br from-white to-neutral-100 px-6 py-12 sm:px-12 sm:py-16">
+      <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">Brought in from Kuala Lumpur</p>
+      <h1 class="mt-3 max-w-xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{{ shop_tagline }}</h1>
+      <p class="mt-3 max-w-lg text-sm text-ink-soft">
+        {{ total_count }} item{{ total_count|pluralize }} in stock across
+        {{ home_categories|length }} section{{ home_categories|length|pluralize }}{% if home_sale_count %},
+        {{ home_sale_count }} of them reduced{% endif %}.
+      </p>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href="#products" class="inline-block rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800">Shop everything</a>
+        <a href="{% url 'store:brands' %}" class="inline-block rounded-lg border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium hover:bg-neutral-50">Shop by brand</a>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if brand %}
+    <section class="mt-8 flex items-center gap-4">
+      <span class="grid h-16 w-16 flex-none place-items-center rounded-full text-base font-bold text-white
+        {% if brand.kind == 'gold' %}bg-gradient-to-br from-amber-400 to-amber-600{% else %}bg-neutral-900{% endif %}">{{ brand.initials }}</span>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">{{ brand.name }}</h1>
+        <p class="text-sm text-ink-soft">
+          {{ brand.get_kind_display }}{% if brand.country %} &middot; {{ brand.country }}{% endif %}
+        </p>
+      </div>
+      <a href="{% url 'store:brands' %}" class="ml-auto text-sm text-ink-soft hover:underline">All brands</a>
+    </section>
+  {% endif %}
+
+  {% if is_gold_page %}
+    <section class="mt-6 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-6 py-10 sm:px-10">
+      <h1 class="text-2xl font-bold tracking-tight text-amber-900">The gold counter</h1>
+      <p class="mt-2 max-w-xl text-sm text-amber-900/80">
+        Hallmarked gold from {{ gold_brands|length }} jewellers, sold by karat and weight.
+        Prices move with the daily gold rate &mdash; call {{ shop_phone }} to confirm before you order.
+      </p>
+      <div class="mt-5 flex flex-wrap gap-2">
+        {% for b in gold_brands %}
+          <a href="{{ b.get_absolute_url }}" class="rounded-full border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100">
+            {{ b.name }} <span class="text-amber-700/70">({{ b.product_count }})</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if is_home %}
+    {# ---- What we promise, before anything is browsed ---------------- #}
+    <section class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {% for icon, head, sub in service_points %}
+        <div class="rounded-xl border border-neutral-200 bg-white px-4 py-3.5">
+          <p class="text-lg">{{ icon }}</p>
+          <p class="mt-1.5 text-sm font-semibold leading-tight">{{ head }}</p>
+          <p class="mt-0.5 text-xs text-ink-soft">{{ sub }}</p>
+        </div>
+      {% endfor %}
+    </section>
+
+    {# ---- Shop by category ------------------------------------------- #}
+    <section class="mt-12">
+      <div class="flex items-end justify-between gap-4">
+        <h2 class="text-xl font-semibold tracking-tight">Shop by category</h2>
+        <a href="#products" class="text-sm text-ink-soft hover:text-ink hover:underline">Browse everything</a>
+      </div>
+      <div class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {% for row in home_categories %}
+          <a href="{{ row.category.get_absolute_url }}"
+             class="group overflow-hidden rounded-xl border border-neutral-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lg">
+            <span class="block aspect-[4/3] overflow-hidden bg-neutral-100">
+              {% if row.cover %}
+                <img src="{{ row.cover.image.url }}" alt="{{ row.category.name }}" loading="lazy"
+                     class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+              {% else %}
+                <span class="grid h-full w-full place-items-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-3xl font-bold text-neutral-400">
+                  {{ row.category.name|first|upper }}
+                </span>
+              {% endif %}
+            </span>
+            <span class="block px-3.5 py-3">
+              <span class="block text-sm font-semibold leading-snug">{{ row.category.name }}</span>
+              <span class="block text-xs text-ink-soft">{{ row.category.product_count }} item{{ row.category.product_count|pluralize }}</span>
+            </span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    {# ---- On sale: only rendered when something is discounted -------- #}
+    {% if home_sale %}
+      <section class="mt-12 rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 to-white px-5 py-7 sm:px-8">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-red-700">Price drop</p>
+            <h2 class="mt-1.5 text-xl font-semibold tracking-tight">On sale now</h2>
+            <p class="mt-1 text-sm text-ink-soft">
+              {{ home_sale_count }} item{{ home_sale_count|pluralize }} reduced &mdash; biggest savings first.
+            </p>
+          </div>
+          <a href="{% url 'store:sale' %}"
+             class="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800">
+            See all {{ home_sale_count }}
+          </a>
+        </div>
+        <div class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {% for p in home_sale %}{% include "store/_product_card.html" %}{% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {# ---- Two promo banners ------------------------------------------ #}
+    <section class="mt-12 grid gap-4 sm:grid-cols-2">
+      <a href="{% url 'store:gold' %}"
+         class="group rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-6 py-8 transition hover:shadow-lg">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Hallmarked</p>
+        <h3 class="mt-2 text-lg font-semibold tracking-tight text-amber-900">The gold counter</h3>
+        <p class="mt-1.5 text-sm text-amber-900/80">Sold by karat and weight, priced to the daily rate.</p>
+        <span class="mt-4 inline-block text-sm font-medium text-amber-900 group-hover:underline">Browse gold &rarr;</span>
+      </a>
+      <a href="{% url 'store:brands' %}"
+         class="group rounded-2xl border border-neutral-200 bg-gradient-to-br from-neutral-100 to-white px-6 py-8 transition hover:shadow-lg">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-ink-soft">{{ home_brands|length }} labels</p>
+        <h3 class="mt-2 text-lg font-semibold tracking-tight">Shop by brand</h3>
+        <p class="mt-1.5 text-sm text-ink-soft">The houses we carry, fashion and gold alike.</p>
+        <div class="mt-4 flex flex-wrap gap-1.5">
+          {% for b in home_brands %}
+            <span class="rounded-full border border-neutral-300 bg-white px-2.5 py-1 text-xs font-medium">{{ b.name }}</span>
+          {% endfor %}
+        </div>
+      </a>
+    </section>
+
+    {# ---- Featured picks --------------------------------------------- #}
+    {% if home_featured %}
+      <section class="mt-12">
+        <h2 class="text-xl font-semibold tracking-tight">Featured picks</h2>
+        <p class="mt-1 text-sm text-ink-soft">Hand-chosen from this month&rsquo;s intake.</p>
+        <div class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {% for p in home_featured %}{% include "store/_product_card.html" %}{% endfor %}
+        </div>
+      </section>
+    {% endif %}
+  {% endif %}
+
+  <div id="products" class="mt-10 flex flex-wrap items-end justify-between gap-4">
+    <h2 class="text-xl font-semibold tracking-tight">
+      {% if query %}Results for &ldquo;{{ query }}&rdquo;
+      {% elif is_sale_page %}On sale
+      {% elif category %}{{ category.name }}
+      {% else %}All pieces{% endif %}
+      <span class="ml-1 text-sm font-normal text-ink-soft">{{ total_count }} item{{ total_count|pluralize }}</span>
+    </h2>
+
+    <form method="get" class="flex flex-wrap items-center gap-2 text-sm">
+      {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+      {% if sizes %}
+        <label for="size" class="text-ink-soft">Size</label>
+        <select name="size" id="size" onchange="this.form.submit()"
+                class="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 focus:border-ink focus:outline-none">
+          <option value="">Any</option>
+          {% for value, label in sizes %}
+            <option value="{{ value }}" {% if size == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+
+      <label for="sort" {% if sizes %}class="ml-2 text-ink-soft"{% else %}class="text-ink-soft"{% endif %}>Sort</label>
+      <select name="sort" id="sort" onchange="this.form.submit()"
+              class="rounded-lg border border-neutral-300 bg-white px-2.5 py-1.5 focus:border-ink focus:outline-none">
+        {% for key, opt in sort_options.items %}
+          <option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ opt.1 }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="rounded-lg border border-neutral-300 px-3 py-1.5">Apply</button></noscript>
+    </form>
+  </div>
+
+  {% if products %}
+    <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {% for p in products %}{% include "store/_product_card.html" %}{% endfor %}
+    </div>
+
+    {% if page.has_other_pages %}
+      <nav class="mt-10 flex items-center justify-center gap-5 text-sm">
+        {% if page.has_previous %}
+          <a href="?{{ querystring }}&amp;page={{ page.previous_page_number }}" class="rounded-lg border border-neutral-300 px-3.5 py-2 hover:bg-neutral-100">&larr; Previous</a>
+        {% else %}
+          <span class="rounded-lg border border-neutral-200 px-3.5 py-2 text-neutral-300">&larr; Previous</span>
+        {% endif %}
+        <span class="text-ink-soft">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a href="?{{ querystring }}&amp;page={{ page.next_page_number }}" class="rounded-lg border border-neutral-300 px-3.5 py-2 hover:bg-neutral-100">Next &rarr;</a>
+        {% else %}
+          <span class="rounded-lg border border-neutral-200 px-3.5 py-2 text-neutral-300">Next &rarr;</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="mt-16 text-center text-ink-soft">
+      Nothing in stock here right now. <a href="{% url 'store:catalog' %}" class="font-medium text-ink underline">Browse everything</a>.
+    </p>
+  {% endif %}
+{% endblock %}

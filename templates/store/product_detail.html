@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} &middot; {{ shop_name }}{% endblock %}
+{% block meta_description %}{{ product.description|striptags|truncatewords:25 }}{% endblock %}
+
+{% block content %}
+  <nav class="mt-5 text-xs text-ink-soft">
+    <a href="{% url 'store:catalog' %}" class="hover:underline">Shop</a>
+    <span class="mx-1.5">/</span>
+    <a href="{{ product.category.get_absolute_url }}" class="hover:underline">{{ product.category.name }}</a>
+    {% if product.brand %}
+      <span class="mx-1.5">/</span>
+      <a href="{{ product.brand.get_absolute_url }}" class="hover:underline">{{ product.brand.name }}</a>
+    {% endif %}
+    <span class="mx-1.5">/</span>
+    <span class="text-ink">{{ product.name }}</span>
+  </nav>
+
+  <div class="mt-5 grid gap-10 lg:grid-cols-2">
+    <div class="overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-100">
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="aspect-square w-full object-cover">
+      {% else %}
+        <span class="grid aspect-square w-full place-items-center bg-gradient-to-br from-neutral-100 to-neutral-200 text-7xl font-bold text-neutral-400">
+          {{ product.name|first|upper }}
+        </span>
+      {% endif %}
+    </div>
+
+    <div>
+      {% if product.brand %}
+        <a href="{{ product.brand.get_absolute_url }}" class="text-[11px] font-semibold uppercase tracking-wider text-ink-soft hover:text-ink">{{ product.brand.name }}</a>
+      {% else %}
+        <p class="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{{ product.category.name }}</p>
+      {% endif %}
+      <h1 class="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{{ product.name }}</h1>
+
+      <p class="mt-4 flex flex-wrap items-baseline gap-3">
+        <span class="text-3xl font-semibold">{{ currency }}{{ product.current_price|floatformat:"0g" }}</span>
+        {% if product.on_sale %}
+          <s class="text-base text-ink-soft">{{ currency }}{{ product.price|floatformat:"0g" }}</s>
+          <span class="rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-white">Save {{ product.discount_percent }}%</span>
+        {% endif %}
+      </p>
+
+      {% if product.is_gold %}
+        <dl class="mt-5 grid grid-cols-3 gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-4 text-center">
+          <div>
+            <dt class="text-[11px] uppercase tracking-wide text-amber-800/80">Purity</dt>
+            <dd class="mt-0.5 text-base font-semibold text-amber-900">{{ product.karat }}</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] uppercase tracking-wide text-amber-800/80">Weight</dt>
+            <dd class="mt-0.5 text-base font-semibold text-amber-900">{{ product.weight_grams|floatformat:"-2" }} g</dd>
+          </div>
+          <div>
+            <dt class="text-[11px] uppercase tracking-wide text-amber-800/80">Per gram</dt>
+            <dd class="mt-0.5 text-base font-semibold text-amber-900">{{ currency }}{{ product.price_per_gram|floatformat:"0g" }}</dd>
+          </div>
+        </dl>
+        <p class="mt-2 text-xs text-ink-soft">
+          Gold prices follow the daily rate. Call {{ shop_phone }} to confirm before ordering.
+        </p>
+      {% endif %}
+
+      {% if product.description %}
+        <div class="prose mt-5 text-sm leading-relaxed text-ink-soft">{{ product.description|linebreaks }}</div>
+      {% endif %}
+
+      {% if product.stock_sum %}
+        <form id="add-form" action="{% url 'cart:add' product.slug %}" method="post" class="mt-7">
+          {% csrf_token %}
+          <input type="hidden" name="override" value="">
+
+          <fieldset>
+            <legend class="text-sm font-semibold">
+              {% if variants|length == 1 and variants.0.size == "OS" %}Availability{% else %}Choose a size{% endif %}
+            </legend>
+            <div class="mt-2.5 flex flex-wrap gap-2">
+              {% for v in variants %}
+                <label class="cursor-pointer {% if not v.stock %}cursor-not-allowed{% endif %}">
+                  <input type="radio" name="variant" value="{{ v.id }}" class="peer sr-only"
+                         {% if not v.stock %}disabled{% endif %} required
+                         data-stock="{{ v.stock }}">
+                  <span class="block min-w-[3.25rem] rounded-lg border px-3.5 py-2.5 text-center text-sm font-medium transition
+                    {% if v.stock %}
+                      border-neutral-300 hover:border-ink peer-checked:border-ink peer-checked:bg-ink peer-checked:text-white
+                    {% else %}
+                      border-neutral-200 text-neutral-300 line-through
+                    {% endif %}">{{ v.get_size_display }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            <p id="stock-hint" class="mt-2 text-xs text-ink-soft"></p>
+          </fieldset>
+
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <label for="quantity" class="text-sm font-medium">Qty</label>
+            <input type="number" id="quantity" name="quantity" value="1" min="1" max="20"
+                   class="w-20 rounded-lg border border-neutral-300 px-3 py-2.5 text-sm focus:border-ink focus:outline-none">
+            <button type="submit"
+                    class="flex-1 rounded-lg bg-ink px-6 py-3 text-sm font-semibold text-white hover:bg-neutral-800 sm:flex-none">
+              Add to cart
+            </button>
+          </div>
+        </form>
+
+        <dl class="mt-7 space-y-1.5 border-t border-neutral-200 pt-5 text-xs text-ink-soft">
+          <div class="flex gap-2"><dt class="font-medium text-ink">Delivery</dt><dd>Inside Dhaka {{ currency }}60 &middot; outside {{ currency }}120</dd></div>
+          <div class="flex gap-2"><dt class="font-medium text-ink">Sourcing</dt><dd>Bought in Malaysia, carried in by hand</dd></div>
+          <div class="flex gap-2"><dt class="font-medium text-ink">Payment</dt><dd>Cash on delivery, or bKash / Nagad transfer</dd></div>
+          <div class="flex gap-2"><dt class="font-medium text-ink">In stock</dt><dd>{{ product.stock_sum }} unit{{ product.stock_sum|pluralize }} available</dd></div>
+        </dl>
+      {% else %}
+        <p class="mt-7 rounded-lg border border-neutral-300 bg-neutral-100 px-4 py-3 text-sm font-medium">
+          Sold out. Call {{ shop_phone }} to ask about a restock.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if related %}
+    <section class="mt-16">
+      <h2 class="text-lg font-semibold tracking-tight">More in {{ product.category.name }}</h2>
+      <div class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {% for p in related %}{% include "store/_product_card.html" %}{% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Progressive enhancement: the form posts normally without JS.
+  (function () {
+    const form = document.getElementById('add-form');
+    if (!form) return;
+
+    const hint = document.getElementById('stock-hint');
+    const qty = document.getElementById('quantity');
+
+    form.addEventListener('change', function (e) {
+      if (e.target.name !== 'variant') return;
+      const stock = parseInt(e.target.dataset.stock, 10);
+      qty.max = Math.min(stock, 20);
+      if (parseInt(qty.value, 10) > stock) qty.value = stock;
+      hint.textContent = stock <= 5 ? 'Only ' + stock + ' left in this size.' : stock + ' in stock.';
+    });
+
+    form.addEventListener('submit', async function (e) {
+      if (!form.querySelector('input[name="variant"]:checked')) return; // let HTML validation speak
+      e.preventDefault();
+
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      button.textContent = 'Adding…';
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        const data = await res.json();
+        if (data.ok) {
+          setCartCount(data.count);
+          toast(data.message, 'success');
+        } else {
+          toast(data.error || 'Could not add that item.', 'error');
+        }
+      } catch (err) {
+        form.submit(); // network hiccup: fall back to a normal post
+        return;
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Add to cart';
+      }
+    });
+  })();
+</script>
+{% endblock %}

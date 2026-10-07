@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Your cart &middot; {{ shop_name }}{% endblock %}
+
+{% block content %}
+  <h1 class="mt-7 text-2xl font-bold tracking-tight">Your cart</h1>
+
+  {% if rows %}
+    <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
+      <div class="divide-y divide-neutral-200 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        {% for row in rows %}
+          {% with item=row.item product=row.item.product variant=row.item.variant %}
+          <div class="flex flex-wrap items-center gap-4 p-4">
+            <a href="{{ product.get_absolute_url }}" class="h-20 w-20 flex-none overflow-hidden rounded-lg bg-neutral-100">
+              {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="h-full w-full object-cover">
+              {% else %}
+                <span class="grid h-full w-full place-items-center text-xl font-bold text-neutral-400">{{ product.name|first|upper }}</span>
+              {% endif %}
+            </a>
+
+            <div class="min-w-[9rem] flex-1">
+              <a href="{{ product.get_absolute_url }}" class="text-sm font-semibold hover:underline">{{ product.name }}</a>
+              <p class="mt-0.5 text-xs text-ink-soft">{{ variant.get_size_display }} &middot; {{ currency }}{{ item.price|floatformat:"0g" }} each</p>
+              {% if variant.stock <= 5 %}
+                <p class="mt-0.5 text-xs font-medium text-amber-700">Only {{ variant.stock }} left</p>
+              {% endif %}
+            </div>
+
+            <form action="{% url 'cart:add' product.slug %}" method="post" class="flex items-center gap-2">
+              {% csrf_token %}
+              <input type="hidden" name="variant" value="{{ variant.id }}">
+              <input type="hidden" name="override" value="on">
+              <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ variant.stock }}"
+                     aria-label="Quantity for {{ product.name }}"
+                     class="w-16 rounded-lg border border-neutral-300 px-2.5 py-2 text-sm focus:border-ink focus:outline-none">
+              <button type="submit" class="rounded-lg border border-neutral-300 px-3 py-2 text-xs font-medium hover:bg-neutral-100">Update</button>
+            </form>
+
+            <p class="w-20 text-right text-sm font-semibold">{{ currency }}{{ item.total_price|floatformat:"0g" }}</p>
+
+            <form action="{% url 'cart:remove' variant.id %}" method="post">
+              {% csrf_token %}
+              <button type="submit" class="text-xs font-medium text-red-700 hover:underline">Remove</button>
+            </form>
+          </div>
+          {% endwith %}
+        {% endfor %}
+      </div>
+
+      <aside class="rounded-xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-32">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-ink-soft">Summary</h2>
+        <dl class="mt-4 space-y-2.5 text-sm">
+          <div class="flex justify-between"><dt>Subtotal</dt><dd class="font-medium">{{ currency }}{{ cart.subtotal|floatformat:"0g" }}</dd></div>
+          <div class="flex justify-between text-ink-soft"><dt>Delivery</dt><dd>calculated at checkout</dd></div>
+        </dl>
+        <p class="mt-4 flex justify-between border-t border-neutral-200 pt-4 text-base font-semibold">
+          <span>Total</span><span>{{ currency }}{{ cart.subtotal|floatformat:"0g" }}+</span>
+        </p>
+        <a href="{% url 'orders:checkout' %}" class="mt-5 block rounded-lg bg-ink px-5 py-3 text-center text-sm font-semibold text-white hover:bg-neutral-800">
+          Checkout
+        </a>
+        <a href="{% url 'store:catalog' %}" class="mt-2.5 block rounded-lg border border-neutral-300 px-5 py-3 text-center text-sm font-medium hover:bg-neutral-100">
+          Keep shopping
+        </a>
+      </aside>
+    </div>
+  {% else %}
+    <p class="mt-16 text-center text-ink-soft">
+      Your cart is empty. <a href="{% url 'store:catalog' %}" class="font-medium text-ink underline">Find something to wear</a>.
+    </p>
+  {% endif %}
+{% endblock %}
