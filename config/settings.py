@@ -15,6 +15,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
+# Render mounts Secret Files at the app root at runtime, but the build step
+# only reliably sees /etc/secrets/. Read both so a `.env` added as a Secret
+# File works during collectstatic and migrate too, not just once the server
+# is up. load_dotenv does not override variables that are already set, so a
+# real environment variable always wins.
+load_dotenv("/etc/secrets/.env")
+
 
 def env_bool(name, default=False):
     return os.environ.get(name, str(default)).strip().lower() in {"1", "true", "yes"}
